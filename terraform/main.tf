@@ -1,12 +1,167 @@
+###############################
+#aws infra to host django app
+###############################
+
+# Create a Virtual Private Cloud to isolate the infrastructure
+resource "aws_vpc" "default" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "homme-django-vpc"
+  }
+}
+
+# Internet Gateway to allow internet access to the VPC
+resource "aws_internet_gateway" "default" {
+  vpc_id = aws_vpc.default.id
+  tags = {
+    Name = "homme-django-ec2-igw"
+  }
+}
+
+# Route table for controlling traffic leaving the VPC
+resource "aws_route_table" "default" {
+  vpc_id = aws_vpc.default.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.default.id
+  }
+  tags = {
+    Name = "homme-django-ec2-rt"
+  }
+}
+
+# Subnet within VPC for resource allocation, in availability zone ap-southeast-2a
+resource "aws_subnet" "subnet1" {
+  vpc_id                  = aws_vpc.default.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = false
+  availability_zone       = "ap-southeast-2a"
+  tags = {
+    Name = "homme-django-ec2-subnet1"
+  }
+}
+
+# Another subnet for redundancy, in availability zone ap-southeast-2b
+resource "aws_subnet" "subnet2" {
+  vpc_id                  = aws_vpc.default.id
+  cidr_block              = "10.0.2.0/24"
+  map_public_ip_on_launch = false
+  availability_zone       = "ap-southeast-2b"
+  tags = {
+    Name = "homme-django-ec2-subnet2"
+  }
+}
+
+# Associate subnets with route table for internet access
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.subnet1.id
+  route_table_id = aws_route_table.default.id
+}
+resource "aws_route_table_association" "b" {
+  subnet_id      = aws_subnet.subnet2.id
+  route_table_id = aws_route_table.default.id
+}
 
 
 
-#s3
+# Security group for EC2 instance
+resource "aws_security_group" "ec2_sg" {
+  vpc_id = aws_vpc.default.id
+  ingress {
+    from_port   = 22
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # Only allow HTTPS traffic from everywhere
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name = "homme-django-ec2-sg"
+  }
+}
+
+# EC2 instance for the local web app
+resource "aws_instance" "web" {
+  ami                    = "ami-0d6560f3176dc9ec0" # Amazon Linux
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.subnet1.id # Place this instance in one of the private subnets
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+
+  associate_public_ip_address = true # Assigns a public IP address to your instance
+  user_data_replace_on_change = true # Replace the user data when it changes
+
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+
+  user_data = <<-EOF
+    #!/bin/bash
+    set -ex
+    yum update -y
+    yum install -y yum-utils
+
+    # Install Docker
+    yum install -y docker
+    service docker start
+
+    # Install AWS CLI
+    yum install -y aws-cli
+
+    # Authenticate to ECR
+    docker login -u AWS -p $(aws ecr get-login-password --region us-east-1) 905418355663.dkr.ecr.us-east-1.amazonaws.com
+
+    # Pull the Docker image from ECR
+    docker pull 905418355663.dkr.ecr.us-east-1.amazonaws.com/django-aws-app:latest
+
+    # Run the Docker image
+    docker run -d -p 80:8080 \
+    --env SECRET_KEY=${var.secret_key} \
+    620457613573.dkr.ecr.us-east-1.amazonaws.com/django-aws-app:latest
+    EOF
+
+  tags = {
+    Name = "homme-django-server"
+  }
+}
+
+# IAM role for EC2 instance to access ECR
+resource "aws_iam_role" "ec2_role" {
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Principal = {
+        Service = "ec2.amazonaws.com",
+      },
+      Effect = "Allow",
+    }],
+  })
+}
+
+# Attach the AmazonEC2ContainerRegistryReadOnly policy to the role
+resource "aws_iam_role_policy_attachment" "ecr_read" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+# IAM instance profile for EC2 instance
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "homme-django-profile"
+  role = aws_iam_role.ec2_role.name
+}
+
+###############################
+#s3 and related resources for django static hosting 
+###############################
 resource "aws_s3_bucket" "django_s3" {
   bucket = "homme-django-static-media"
 
   tags = { 
-    Name = "django-s3-bucket" 
+    Name = "homme-django-s3-bucket" 
   }
 }
 
@@ -24,7 +179,7 @@ resource "aws_s3_bucket_acl" "django_s3_acl" {
   acl    = "private"
 }
 
-#iam
+# iam 
 resource "aws_s3_bucket_policy" "allow_access_to_s3_policy" {
   bucket = aws_s3_bucket.django_s3.id
   policy = data.aws_iam_policy_document.allow_access_to_s3.json
@@ -57,7 +212,7 @@ resource "aws_ecr_repository" "django_aws_repo" {
   name                 = "django-aws-app"
   image_tag_mutability = "MUTABLE" 
   tags = {
-    Name = "DjangoAWSAppECR"
+    Name = "HommeDjangoAppECR"
   }
 }
 
