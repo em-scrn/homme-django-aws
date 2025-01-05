@@ -1,0 +1,71 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.swp
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Virtual Environment
+env/
+venv/
+homme-website/
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Environment Variables
+.env
+
+# Azure
+*.publishsettings
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*$py.class
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.cache
+.nox/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+mypy-cache/
+
+# Pytest
+.pytest_cache/
+
+# Terraform state files
+terraform.tfstate
+terraform.tfstate.*
+
+# Terraform variables
+*.tfvars
+*.tfvars.json
+
+# Backup files created during `terraform plan` and `terraform apply`
+.crash.log
+.backup
+
+# Lock files to prevent concurrent updates
+.terraform.lock.hcl
+
+# Terraform provider plugins (downloaded by Terraform)
+.terraform/
+
+
+
+Dockerfile-copyforbuild

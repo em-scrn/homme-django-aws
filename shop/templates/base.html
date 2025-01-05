@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>homme</title>
+    <link rel="stylesheet" href="{% static 'shop/styles.css' %}">
+</head>
+<body>
+    <header>
+        <h1><a href="{% url 'index' %}">homme</a></h1>
+        <div class="divider"></div>
+        <nav>
+            <ul>
+                <li>
+                    <a href="{% url 'stud_earrings' %}" 
+                       class="{% if request.path == '/studs/' or request.path == '/shop/studs/' %}active{% endif %}">
+                        studs
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'hoop_earrings' %}" 
+                       class="{% if request.path == '/hoops/' or request.path == '/shop/hoops/' %}active{% endif %}">
+                        hoops
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-links">
+            <a href="#">About Us</a>
+            <a href="#">Contact</a>
+        </div>
+        <p>&copy; 2024 homme. All rights reserved.</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="products-container">
+        {% if earrings %}
+            {% for earring in earrings %}
+                <div class="product-item">
+                    {% if earring.image %}
+                        <img src="{{ earring.image.url }}" alt="{{ earring.name }}">
+                    {% else %}
+                        <p>No image available</p>
+                    {% endif %}
+                    <h3>{{ earring.name }}</h3>
+                    <p>{{ earring.description }}</p>
+                    <p>NZ ${{ earring.price }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No {{ category }} are currently available.</p>
+        {% endif %}
+    </div>
+{% endblock %}
