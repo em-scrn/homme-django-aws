@@ -2,7 +2,7 @@
 resource "aws_db_subnet_group" "default" {
   subnet_ids = [aws_subnet.subnet1.id, aws_subnet.subnet2.id]
   tags = {
-    Name = "homme-django-subnet-group"
+    Name = "${var.db_identifier}-subnet-group"
   }
 }
 
@@ -24,7 +24,7 @@ resource "aws_security_group" "rds_sg" {
     cidr_blocks = ["0.0.0.0/0"] # Updated to "10.0.0.0/16"
   }
   tags = {
-    Name = "homme-django-rds-sg"
+    Name = "${var.db_identifier}-rds-sg"
   }
 }
 
@@ -35,16 +35,16 @@ resource "aws_db_instance" "default" {
   engine                 = "postgres"
   engine_version         = "16.1"
   instance_class         = "db.t3.micro"
-  identifier             = "homme-django-rds"
+  identifier             = var.db_identifier
   db_name                = "djangodb"
-  username               = "eunicesabdao"
+  username               = var.db_username
   password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.default.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   skip_final_snapshot    = true
-  publicly_accessible    = true # Changed to false for private access
+  publicly_accessible    = false # Changed to false for private access
   multi_az               = false
   tags = {
-    Name = "homme-django-rds-instance"
+    Name = "${var.db_identifier}-rds-instance"
   }
 }

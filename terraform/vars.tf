@@ -6,8 +6,20 @@ variable "secret_key" {
   sensitive   = true
 }
 
+####
+#database vars
+####
+variable "db_username" {
+  description = "The username for the RDS database."
+}
+
 variable "db_password" {
   description = "The password for the database"
   type        = string
   sensitive   = true
 }
+
+variable "db_identifier" {
+  description = "The identifier for the RDS database."
+}
+
