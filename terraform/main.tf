@@ -8,7 +8,7 @@ resource "aws_vpc" "default" {
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
-    Name = "homme-django-vpc"
+    Name = "${var.app_name}-vpc"
   }
 }
 
@@ -16,7 +16,7 @@ resource "aws_vpc" "default" {
 resource "aws_internet_gateway" "default" {
   vpc_id = aws_vpc.default.id
   tags = {
-    Name = "homme-django-ec2-igw"
+    Name = "${var.app_name}-ec2-igw"
   }
 }
 
@@ -28,7 +28,7 @@ resource "aws_route_table" "default" {
     gateway_id = aws_internet_gateway.default.id
   }
   tags = {
-    Name = "homme-django-ec2-rt"
+    Name = "${var.app_name}-ec2-rt"
   }
 }
 
@@ -39,7 +39,7 @@ resource "aws_subnet" "subnet1" {
   map_public_ip_on_launch = false
   availability_zone       = "ap-southeast-2a"
   tags = {
-    Name = "homme-django-ec2-subnet1"
+    Name = "${var.app_name}-ec2-subnet1"
   }
 }
 
@@ -50,7 +50,7 @@ resource "aws_subnet" "subnet2" {
   map_public_ip_on_launch = false
   availability_zone       = "ap-southeast-2b"
   tags = {
-    Name = "homme-django-ec2-subnet2"
+    Name = "${var.app_name}-ec2-subnet2"
   }
 }
 
@@ -82,7 +82,7 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
-    Name = "homme-django-ec2-sg"
+    Name = "${var.app_name}-ec2-sg"
   }
 }
 
@@ -112,20 +112,20 @@ resource "aws_instance" "web" {
     yum install -y aws-cli
 
     # Authenticate to ECR
-    docker login -u AWS -p $(aws ecr get-login-password --region ap-southeast-2) 905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws-app:latest
+    docker login -u AWS -p $(aws ecr get-login-password --region ap-southeast-2) ${aws_ecr_repository.django_aws_repo.repository_url}:latest
 
     # Pull the Docker image from ECR
-    docker pull --platform linux/amd64 905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws-app:latest
+    docker pull --platform linux/amd64 ${aws_ecr_repository.django_aws_repo.repository_url}:latest
 
     # Run the Docker image
     docker run --platform linux/amd64 -d -p 80:8080 \
         --env SECRET_KEY="${var.secret_key}" \
-        --env DB_NAME="${aws_db_instance.default.db_name}" \
-        --env DB_USER_NM="${aws_db_instance.default.username}" \
-        --env DB_USER_PW="${aws_db_instance.default.password}" \
-        --env DB_IP="${aws_db_instance.default.address}" \
+        --env DB_NAME=${aws_db_instance.default.db_name} \
+        --env DB_USER_NM=${aws_db_instance.default.username} \
+        --env DB_USER_PW=${aws_db_instance.default.password} \
+        --env DB_IP=${aws_db_instance.default.address} \
         --env DB_PORT=5432 \
-        905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws-app:latest
+        ${aws_ecr_repository.django_aws_repo.repository_url}:latest
     EOF
 
   tags = {
@@ -155,18 +155,18 @@ resource "aws_iam_role_policy_attachment" "ecr_read" {
 
 # IAM instance profile for EC2 instance
 resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "homme-django-profile"
+  name = "${var.app_name}-profile"
   role = aws_iam_role.ec2_role.name
 }
 
 ###############################
-#s3 and related resources for django static hosting 
+# s3 and related resources for django static hosting 
 ###############################
 resource "aws_s3_bucket" "django_s3" {
-  bucket = "homme-django-static-media"
+  bucket = "${var.app_name}-static-media"
 
   tags = { 
-    Name = "homme-django-s3-bucket" 
+    Name = "${var.app_name}-s3-bucket" 
   }
 }
 
@@ -208,16 +208,16 @@ data "aws_iam_policy_document" "allow_access_to_s3" {
 }
 
 resource "aws_iam_user" "s3_access_iam_user" {
-  name = "homme-s3-user"
+  name = "${var.app_name}-s3-user"
   permissions_boundary = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
 #ecr
 resource "aws_ecr_repository" "django_aws_repo" {
-  name                 = "django-aws-app"
+  name                 = "${var.ecr_app_name}"
   image_tag_mutability = "MUTABLE" 
   tags = {
-    Name = "HommeDjangoAppECR"
+    Name = "${var.ecr_app_name}-ecr"
   }
 }
 
