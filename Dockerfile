@@ -12,7 +12,7 @@ COPY . /app/
 
 # Install dependencies
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Command to run the application with Gunicornz
 CMD gunicorn django_aws.wsgi:application --bind 0.0.0.0:"${PORT}"

@@ -112,20 +112,20 @@ resource "aws_instance" "web" {
     yum install -y aws-cli
 
     # Authenticate to ECR
-    docker login -u AWS -p $(aws ecr get-login-password --region ap-southeast-2) 905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws:latest
+    docker login -u AWS -p $(aws ecr get-login-password --region ap-southeast-2) 905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws-app:latest
 
     # Pull the Docker image from ECR
-    docker pull 905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws:latest
+    docker pull --platform linux/amd64 905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws-app:latest
 
     # Run the Docker image
-    docker run -d -p 80:8080 \
-        --env SECRET_KEY=${var.secret_key} \
-        --env DB_NAME=${aws_db_instance.default.db_name} \
-        --env DB_USER_NM=${aws_db_instance.default.username} \
-        --env DB_USER_PW=${aws_db_instance.default.password} \
-        --env DB_IP=${aws_db_instance.default.address} \
+    docker run --platform linux/amd64 -d -p 80:8080 \
+        --env SECRET_KEY="${var.secret_key}" \
+        --env DB_NAME="${aws_db_instance.default.db_name}" \
+        --env DB_USER_NM="${aws_db_instance.default.username}" \
+        --env DB_USER_PW="${aws_db_instance.default.password}" \
+        --env DB_IP="${aws_db_instance.default.address}" \
         --env DB_PORT=5432 \
-        905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws:latest
+        905418355663.dkr.ecr.ap-southeast-2.amazonaws.com/django-aws-app:latest
     EOF
 
   tags = {
