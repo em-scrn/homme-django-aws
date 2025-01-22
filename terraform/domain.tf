@@ -1,12 +1,12 @@
 # Request a certificate for the domain and its www subdomain
 resource "aws_acm_certificate" "cert" {
-  domain_name       = "homme.co.nz"
+  domain_name       = var.domain_name
   validation_method = "DNS"
 
-  subject_alternative_names = ["www.homme.co.nz"]
+  subject_alternative_names = ["www.${var.domain_name}"]
 
   tags = {
-    Name = "my_domain_certificate"
+    Name = "${var.domain_name}_certificate"
   }
 
   lifecycle {
@@ -16,7 +16,7 @@ resource "aws_acm_certificate" "cert" {
 
 # Declare the Route 53 zone for the domain
 data "aws_route53_zone" "selected" {
-  name = "homme.co.nz"
+  name = var.domain_name
 }
 
 # Define the Route 53 records for certificate validation
@@ -39,7 +39,7 @@ resource "aws_route53_record" "cert_validation" {
 # Define the Route 53 records for the domain and its www subdomain
 resource "aws_route53_record" "root_record" {
   zone_id = data.aws_route53_zone.selected.zone_id
-  name    = "homme.co.nz"
+  name    = var.domain_name
   type    = "A"
 
   alias {
@@ -51,7 +51,7 @@ resource "aws_route53_record" "root_record" {
 
 resource "aws_route53_record" "www_record" {
   zone_id = data.aws_route53_zone.selected.zone_id
-  name    = "www.homme.co.nz"
+  name    = "www.${var.domain_name}"
   type    = "A"
 
   alias {
@@ -90,7 +90,7 @@ resource "aws_security_group" "alb_sg" {
 
 # Application Load Balancer for HTTPS traffic
 resource "aws_lb" "default" {
-  name               = "homme-django-ec2-alb-https"
+  name               = "${var.app_name}-ec2-alb-https"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -100,17 +100,27 @@ resource "aws_lb" "default" {
 }
 
 # Target group for the ALB to route traffic from ALB to VPC
-resource "aws_lb_target_group" "default" {
-  name     = "homme-django-ec2-tg-https"
+resource "aws_lb_target_group" "default_http" {
+  name     = "${var.app_name}-ec2-tg-https"
+  # target_type = "alb"
   port     = 443
-  protocol = "HTTP" # Protocol used between the load balancer and targets
+  protocol = "HTTP"
   vpc_id   = aws_vpc.default.id
+
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
 }
+
 
 # Attach the EC2 instance to the target group
 resource "aws_lb_target_group_attachment" "default" {
-  target_group_arn = aws_lb_target_group.default.arn
-  target_id        = aws_instance.web.id # Your EC2 instance ID
+  target_group_arn = aws_lb_target_group.default_http.arn
+  target_id        = aws_instance.web.id # EC2 instance id
   port             = 80                  # Port the EC2 instance listens on; adjust if different
 }
 
@@ -125,6 +135,7 @@ resource "aws_lb_listener" "default" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.default.arn
+    target_group_arn = aws_lb_target_group.default_http.arn
   }
+
 }

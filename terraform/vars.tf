@@ -2,6 +2,13 @@ variable "app_name" {
   description = "The name of the app, resources will be tagged using this name"
 }
 
+####
+# domain vars
+####
+variable "domain_name" {
+  description = "The name of the domain as stated in Route 53"
+}
+
 # Define variable for RDS password to avoid hardcoding secrets
 variable "secret_key" {
   description = "The Secret Key for Django"
@@ -31,5 +38,9 @@ variable "db_identifier" {
 ####
 
 variable "ecr_app_name" {
+  description = "The name of the ecr"
+}
+
+variable "ecr_repository_url" {
   description = "The name of the ecr"
 }

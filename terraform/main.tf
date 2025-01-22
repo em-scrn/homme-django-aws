@@ -68,23 +68,43 @@ resource "aws_route_table_association" "b" {
 
 # Security group for EC2 instance
 resource "aws_security_group" "ec2_sg" {
+  name = "ec2_sg"
   vpc_id = aws_vpc.default.id
-  ingress {
-    from_port   = 22
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Only allow HTTPS traffic from everywhere
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # ingress {
+  #   from_port   = 80
+  #   to_port     = 80
+  #   protocol    = "tcp"
+  #   cidr_blocks = ["0.0.0.0/0"] # Only allow HTTP traffic from everywhere
+  # }
+  # }
+  # egress {
+  #   from_port   = 0
+  #   to_port     = 0
+  #   protocol    = "-1"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
   tags = {
     Name = "${var.app_name}-ec2-sg"
   }
 }
+
+# Split the ingress and egress rules from SG as per best practice from TF
+resource "aws_vpc_security_group_ingress_rule" "ec2_sg_ipv4" {
+  security_group_id = aws_security_group.ec2_sg.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 22
+  to_port           = 80
+  ip_protocol       = "tcp"
+}
+
+resource "aws_vpc_security_group_egress_rule" "ec2_sg_allow_all_traffic_ipv4" {
+  security_group_id = aws_security_group.ec2_sg.id
+  # from_port = 0
+  # to_port = 0
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1" # semantically equivalent to all ports
+}
+
 
 # EC2 instance for the local web app
 resource "aws_instance" "web" {
@@ -127,6 +147,7 @@ resource "aws_instance" "web" {
         --env DB_PORT=5432 \
         ${aws_ecr_repository.django_aws_repo.repository_url}:latest
     EOF
+    
 
   tags = {
     Name = "homme-django-server"

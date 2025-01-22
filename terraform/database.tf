@@ -17,6 +17,7 @@ resource "aws_security_group" "rds_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] # Updated to "10.0.0.0/16"
   }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -33,7 +34,7 @@ resource "aws_db_instance" "default" {
   allocated_storage      = 20
   storage_type           = "gp2"
   engine                 = "postgres"
-  engine_version         = "16.1"
+  engine_version         = "16.3"
   instance_class         = "db.t3.micro"
   identifier             = var.db_identifier
   db_name                = "djangodb"
@@ -43,8 +44,35 @@ resource "aws_db_instance" "default" {
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   skip_final_snapshot    = true
   publicly_accessible    = false # Changed to false for private access
+  # publicly_accessible    = true # Changed to true for local testing
   multi_az               = false
+
+  monitoring_interval = 60 # Enables monitoring at 60-second intervals
+  monitoring_role_arn = aws_iam_role.rds_monitoring.arn
+
   tags = {
     Name = "${var.db_identifier}-rds-instance"
   }
+}
+
+# monitoring for rds
+
+resource "aws_iam_role" "rds_monitoring" {
+  name = "${var.app_name}-rds-monitoring-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = {
+        Service = "monitoring.rds.amazonaws.com",
+      },
+    }],
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "rds_monitoring" {
+  role       = aws_iam_role.rds_monitoring.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }

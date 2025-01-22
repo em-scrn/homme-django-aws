@@ -66,6 +66,8 @@ terraform.tfstate.*
 # Terraform provider plugins (downloaded by Terraform)
 .terraform/
 
-
+terraform/public_key.pem
 
 Dockerfile-copyforbuild
+
+terraform/lt_commands.sh

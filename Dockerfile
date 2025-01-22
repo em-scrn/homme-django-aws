@@ -15,6 +15,6 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 # Command to run the application with Gunicornz
-CMD gunicorn django_aws.wsgi:application --bind 0.0.0.0:"${PORT}"
+CMD ["gunicorn", "django_aws.wsgi:application", "--bind", "0.0.0.0:8080"]
 
 EXPOSE ${PORT}
